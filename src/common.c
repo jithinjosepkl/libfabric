@@ -44,10 +44,12 @@
 #include <unistd.h>
 #include <poll.h>
 #include <pthread.h>
+#include <sys/epoll.h>
 #include <sys/time.h>
 
 #include <rdma/fi_errno.h>
 #include "fi.h"
+
 
 int fi_wait_cond(pthread_cond_t *cond, pthread_mutex_t *mut, int timeout)
 {
@@ -214,4 +216,44 @@ int fi_fd_nonblock(int fd)
 		return -errno;
 
 	return 0;
+}
+
+int fi_epoll_create(void)
+{
+	int ret;
+	ret = epoll_create(4);
+	return ret < 0 ? -errno : ret;
+}
+
+int fi_epoll_add(int epoll_fd, int fd, void *context)
+{
+	struct epoll_event event;
+	int ret;
+
+	event.data.ptr = context;
+	event.events = EPOLLIN;
+	ret = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &event);
+	if (ret == -1 && errno != EEXIST)
+		return -errno;
+	return 0;
+}
+
+int fi_epoll_del(int epoll_fd, int fd)
+{
+	return epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL) ? -errno : 0;
+}
+
+void *fi_epoll_wait(int epoll_fd, int timeout)
+{
+	struct epoll_event event;
+	int ret;
+
+	ret = epoll_wait(epoll_fd, &event, 1, timeout);
+	return ret == 1 ? event.data.ptr : NULL;
+}
+
+void fi_epoll_clear(int epoll_fd)
+{
+	while (fi_epoll_wait(epoll_fd, 0)) {
+	}
 }

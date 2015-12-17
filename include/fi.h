@@ -143,6 +143,8 @@ void fi_create_filter(struct fi_filter *filter, const char *env_name);
 void fi_free_filter(struct fi_filter *filter);
 int fi_apply_filter(struct fi_filter *filter, const char *name);
 
+void fi_util_init(void);
+void fi_util_fini(void);
 void fi_log_init(void);
 void fi_log_fini(void);
 void fi_param_init(void);
@@ -399,6 +401,12 @@ static inline int atomic_sub(atomic_t *atomic, int val)
 int fi_read_file(const char *dir, const char *file, char *buf, size_t size);
 int fi_poll_fd(int fd, int timeout);
 int fi_wait_cond(pthread_cond_t *cond, pthread_mutex_t *mut, int timeout);
+
+int fi_epoll_create(void);
+int fi_epoll_add(int epoll_fd, int fd, void *context);
+int fi_epoll_del(int epoll_fd, int fd);
+void *fi_epoll_wait(int epoll_fd, int timeout);
+void fi_epoll_clear(int epoll_fd);
 
 size_t fi_datatype_size(enum fi_datatype datatype);
 uint64_t fi_tag_bits(uint64_t mem_tag_format);
