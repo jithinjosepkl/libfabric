@@ -52,15 +52,21 @@ int udpx_domain_open(struct fid_fabric *fabric, struct fi_info *info,
 		struct fid_domain **domain, void *context)
 {
 	int ret;
+	struct util_domain *util_domain;
 
 	ret = fi_check_info(&udpx_prov, &udpx_info, info);
 	if (ret)
 		return ret;
 
-	ret = fi_domain_create(fabric, info, domain, context);
+	util_domain = calloc(1, sizeof(*util_domain));
+	if (!util_domain)
+		return -FI_ENOMEM;
+
+	ret = fi_domain_init(fabric, info, util_domain, context);
 	if (ret)
 		return ret;
 
+	*domain = &util_domain->domain_fid;
 	(*domain)->ops = &udpx_domain_ops;
 	return 0;
 }

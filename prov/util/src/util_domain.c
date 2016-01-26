@@ -81,24 +81,18 @@ static int util_domain_init(struct util_domain *domain,
 	return domain->name ? 0 : -FI_ENOMEM;
 }
 
-int fi_domain_create(struct fid_fabric *fabric_fid, const struct fi_info *info,
-		     struct fid_domain **domain_fid, void *context)
+int fi_domain_init(struct fid_fabric *fabric_fid, const struct fi_info *info,
+		   struct util_domain *domain, void *context)
 {
-	struct util_fabric *fabric;
-	struct util_domain *domain;
 	int ret;
+	struct util_fabric *fabric;
 
 	fabric = container_of(fabric_fid, struct util_fabric, fabric_fid);
-
-	domain = calloc(1, sizeof(*domain));
-	if (!domain)
-		return -FI_ENOMEM;
 
 	domain->fabric = fabric;
 	domain->prov = fabric->prov;
 	ret = util_domain_init(domain, info);
 	if (ret) {
-		free(domain);
 		return ret;
 	}
 
@@ -115,6 +109,5 @@ int fi_domain_create(struct fid_fabric *fabric_fid, const struct fi_info *info,
 	fastlock_release(&fabric->lock);
 
 	atomic_inc(&fabric->ref);
-	*domain_fid = &domain->domain_fid;
 	return 0;
 }

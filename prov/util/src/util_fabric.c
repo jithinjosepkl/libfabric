@@ -67,21 +67,16 @@ static void util_fabric_init(struct util_fabric *fabric, const char *name)
 	fabric->name = name;
 }
 
-int fi_fabric_create(const struct fi_provider *prov,
-		     struct fi_fabric_attr *prov_attr,
-		     struct fi_fabric_attr *user_attr,
-		     struct fid_fabric **fabric_fid, void *context)
+int fi_fabric_init(const struct fi_provider *prov,
+		   struct fi_fabric_attr *prov_attr,
+		   struct fi_fabric_attr *user_attr,
+		   struct util_fabric *fabric, void *context)
 {
-	struct util_fabric *fabric;
 	int ret;
 
 	ret = fi_check_fabric_attr(prov, prov_attr, user_attr);
 	if (ret)
 		return ret;
-
-	fabric = calloc(1, sizeof(*fabric));
-	if (!fabric)
-		return -FI_ENOMEM;
 
 	fabric->prov = prov;
 	util_fabric_init(fabric, prov_attr->name);
@@ -93,7 +88,6 @@ int fi_fabric_create(const struct fi_provider *prov,
 	 */
 	fabric->fabric_fid.fid.ops = &util_fabric_fi_ops;
 	fi_fabric_insert(fabric);
-
-	*fabric_fid = &fabric->fabric_fid;
 	return 0;
 }
+

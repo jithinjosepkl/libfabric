@@ -48,12 +48,18 @@ int udpx_fabric(struct fi_fabric_attr *attr, struct fid_fabric **fabric,
 		void *context)
 {
 	int ret;
+	struct util_fabric *util_fabric;
 
-	ret = fi_fabric_create(&udpx_prov, udpx_info.fabric_attr, attr,
-			       fabric, context);
+	util_fabric = calloc(1, sizeof(*util_fabric));
+	if (!util_fabric)
+		return -FI_ENOMEM;
+
+	ret = fi_fabric_init(&udpx_prov, udpx_info.fabric_attr, attr,
+			     util_fabric, context);
 	if (ret)
 		return ret;
 
+	*fabric = &util_fabric->fabric_fid;
 	(*fabric)->ops = &udpx_fabric_ops;
 	return 0;
 }
