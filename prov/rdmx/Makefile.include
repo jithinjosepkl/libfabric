@@ -1,0 +1,26 @@
+if HAVE_RDMX
+_rdmx_files = \
+	prov/rdmx/src/rdmx_attr.c	\
+	prov/rdmx/src/rdmx_init.c	\
+	prov/rdmx/src/rdmx_fabric.c	\
+	prov/rdmx/src/rdmx_domain.c	\
+	prov/rdmx/src/rdmx_cq.c	\
+	prov/rdmx/src/rdmx_ep.c	\
+	prov/rdmx/src/rdmx.h
+
+if HAVE_RDMX_DL
+pkglib_LTLIBRARIES += librdmx-fi.la
+librdmx_fi_la_SOURCES = $(_rdmx_files) $(common_srcs)
+librdmx_fi_la_LIBADD = $(linkback) $(rdmx_shm_LIBS)
+librdmx_fi_la_LDFLAGS = -module -avoid-version -shared -export-dynamic
+librdmx_fi_la_DEPENDENCIES = $(linkback)
+else !HAVE_RDMX_DL
+src_libfabric_la_SOURCES += $(_rdmx_files)
+src_libfabric_la_LIBADD += $(rdmx_shm_LIBS)
+endif !HAVE_RDMX_DL
+
+#prov_install_man_pages += man/man7/fi_rdmx.7
+
+endif HAVE_RDMX
+
+#prov_dist_man_pages += man/man7/fi_rdmx.7

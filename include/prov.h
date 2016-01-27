@@ -135,4 +135,16 @@ UDP_INI ;
 #  define UDP_INIT NULL
 #endif
 
+#if (HAVE_RDMX) && (HAVE_RDMX_DL)
+#  define RDMX_INI FI_EXT_INI
+#  define RDMX_INIT NULL
+#elif (HAVE_RDMX)
+#  define RDMX_INI INI_SIG(fi_rdmx_ini)
+#  define RDMX_INIT fi_rdmx_ini()
+RDMX_INI ;
+#else
+#  define RDMX_INIT NULL
+#endif
+
+
 #endif /* _PROV_H_ */

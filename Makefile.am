@@ -273,6 +273,7 @@ prov_dist_man_pages=
 
 include prov/sockets/Makefile.include
 include prov/udp/Makefile.include
+include prov/rdmx/Makefile.include
 include prov/verbs/Makefile.include
 include prov/usnic/Makefile.include
 include prov/psm/Makefile.include

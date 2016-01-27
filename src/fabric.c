@@ -398,6 +398,7 @@ libdl_done:
         /* Initialize the socket(s) provider last.  This will result in
            it being the least preferred provider. */
 	fi_register_provider(UDP_INIT, NULL);
+	fi_register_provider(RDMX_INIT, NULL);
 	fi_register_provider(SOCKETS_INIT, NULL);
 
 	init = 1;
