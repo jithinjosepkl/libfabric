@@ -43,6 +43,35 @@ static struct fi_ops_fabric rdmx_fabric_ops = {
 	.wait_open = NULL,
 };
 
+static int rdmx_fabric_close(fid_t fid)
+{
+	int ret;
+	struct util_fabric *util_fabric;
+	struct rdmx_fabric *rdmx_fabric;
+
+	util_fabric = container_of(fid, struct util_fabric, fabric_fid.fid);
+	rdmx_fabric = container_of(util_fabric, struct rdmx_fabric, util_fabric);
+	
+	ret = fi_close(&rdmx_fabric->dg_fabric->fid);
+	if (ret)
+		return ret;
+
+	ret = util_fabric_close(util_fabric);
+	if (ret)
+		return ret;
+
+	free(rdmx_fabric);
+	return 0;
+}
+
+static struct fi_ops rdmx_fabric_fi_ops = {
+	.size = sizeof(struct fi_ops),
+	.close = rdmx_fabric_close,
+	.bind = fi_no_bind,
+	.control = fi_no_control,
+	.ops_open = fi_no_ops_open,
+};
+
 int rdmx_fabric(struct fi_fabric_attr *attr, struct fid_fabric **fabric,
 		void *context)
 {
@@ -65,6 +94,7 @@ int rdmx_fabric(struct fi_fabric_attr *attr, struct fid_fabric **fabric,
 	}
 
 	*fabric = &rdmx_fabric->util_fabric.fabric_fid;
+	(*fabric)->fid.ops = &rdmx_fabric_fi_ops;
 	(*fabric)->ops = &rdmx_fabric_ops;
 	return 0;
 

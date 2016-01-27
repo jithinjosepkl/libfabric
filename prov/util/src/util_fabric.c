@@ -37,27 +37,15 @@
 #include <fi_util.h>
 
 
-static int util_fabric_close(fid_t fid)
+int util_fabric_close(struct util_fabric *fabric)
 {
-	struct util_fabric *fabric;
-
-	fabric = container_of(fid, struct util_fabric, fabric_fid.fid);
 	if (atomic_get(&fabric->ref))
 		return -FI_EBUSY;
 
 	fi_fabric_remove(fabric);
 	fastlock_destroy(&fabric->lock);
-	free(fabric);
 	return 0;
 }
-
-static struct fi_ops util_fabric_fi_ops = {
-	.size = sizeof(struct fi_ops),
-	.close = util_fabric_close,
-	.bind = fi_no_bind,
-	.control = fi_no_control,
-	.ops_open = fi_no_ops_open,
-};
 
 static void util_fabric_init(struct util_fabric *fabric, const char *name)
 {
@@ -73,7 +61,6 @@ int fi_fabric_init(const struct fi_provider *prov,
 		   struct util_fabric *fabric, void *context)
 {
 	int ret;
-
 	ret = fi_check_fabric_attr(prov, prov_attr, user_attr);
 	if (ret)
 		return ret;
@@ -84,9 +71,8 @@ int fi_fabric_init(const struct fi_provider *prov,
 	fabric->fabric_fid.fid.fclass = FI_CLASS_FABRIC;
 	fabric->fabric_fid.fid.context = context;
 	/*
-	 * fabric ops set by provider
+	 * fabric and fi ops set by provider
 	 */
-	fabric->fabric_fid.fid.ops = &util_fabric_fi_ops;
 	fi_fabric_insert(fabric);
 	return 0;
 }

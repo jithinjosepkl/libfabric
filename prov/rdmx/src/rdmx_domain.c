@@ -50,6 +50,33 @@ static struct fi_ops_domain rdmx_domain_ops = {
 	.srx_ctx = fi_no_srx_context,
 };
 
+static int rdmx_domain_close(fid_t fid)
+{
+	int ret;
+	struct util_domain *util_domain;
+	struct rdmx_domain *rdmx_domain;
+	util_domain = container_of(fid, struct util_domain, domain_fid.fid);
+	rdmx_domain = container_of(util_domain, struct rdmx_domain, util_domain);
+
+	ret = fi_close(&rdmx_domain->dg_domain->fid);
+	if (ret)
+		return ret;
+
+	ret = util_domain_close(util_domain);
+	if (ret)
+		return ret;
+	free(util_domain);
+	return 0;
+}
+
+static struct fi_ops rdmx_domain_fi_ops = {
+	.size = sizeof(struct fi_ops),
+	.close = rdmx_domain_close,
+	.bind = fi_no_bind,
+	.control = fi_no_control,
+	.ops_open = fi_no_ops_open,
+};
+
 int rdmx_domain_open(struct fid_fabric *fabric, struct fi_info *info,
 		struct fid_domain **domain, void *context)
 {
@@ -71,6 +98,7 @@ int rdmx_domain_open(struct fid_fabric *fabric, struct fi_info *info,
 	}
 
 	*domain = &rdmx_domain->util_domain.domain_fid;
+	(*domain)->fid.ops = &rdmx_domain_fi_ops;
 	(*domain)->ops = &rdmx_domain_ops;
 	return 0;
 }

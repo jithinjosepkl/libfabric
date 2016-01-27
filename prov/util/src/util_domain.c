@@ -37,11 +37,8 @@
 #include <fi_util.h>
 
 
-static int util_domain_close(fid_t fid)
+int util_domain_close(struct util_domain *domain)
 {
-	struct util_domain *domain;
-
-	domain = container_of(fid, struct util_domain, domain_fid.fid);
 	if (atomic_get(&domain->ref))
 		return -FI_EBUSY;
 
@@ -50,17 +47,8 @@ static int util_domain_close(fid_t fid)
 	fastlock_release(&domain->fabric->lock);
 
 	fastlock_destroy(&domain->lock);
-	free(domain);
 	return 0;
 }
-
-static struct fi_ops util_domain_fi_ops = {
-	.size = sizeof(struct fi_ops),
-	.close = util_domain_close,
-	.bind = fi_no_bind,
-	.control = fi_no_control,
-	.ops_open = fi_no_ops_open,
-};
 
 static struct fi_ops_mr util_domain_mr_ops = {
 	.size = sizeof(struct fi_ops_mr),
@@ -99,9 +87,8 @@ int fi_domain_init(struct fid_fabric *fabric_fid, const struct fi_info *info,
 	domain->domain_fid.fid.fclass = FI_CLASS_DOMAIN;
 	domain->domain_fid.fid.context = context;
 	/*
-	 * domain ops set by provider
+	 * domain and fi ops set by provider
 	 */
-	domain->domain_fid.fid.ops = &util_domain_fi_ops;
 	domain->domain_fid.mr = &util_domain_mr_ops;
 
 	fastlock_acquire(&fabric->lock);

@@ -44,6 +44,26 @@ static struct fi_ops_fabric udpx_fabric_ops = {
 	.wait_open = fi_wait_fd_open,
 };
 
+static int udpx_fabric_close(fid_t fid)
+{
+	int ret;
+	struct util_fabric *fabric;
+	fabric = container_of(fid, struct util_fabric, fabric_fid.fid);
+	ret = util_fabric_close(fabric);
+	if (ret)
+		return ret;
+	free(fabric);
+	return 0;
+}
+
+static struct fi_ops udpx_fabric_fi_ops = {
+	.size = sizeof(struct fi_ops),
+	.close = udpx_fabric_close,
+	.bind = fi_no_bind,
+	.control = fi_no_control,
+	.ops_open = fi_no_ops_open,
+};
+
 int udpx_fabric(struct fi_fabric_attr *attr, struct fid_fabric **fabric,
 		void *context)
 {
@@ -60,6 +80,7 @@ int udpx_fabric(struct fi_fabric_attr *attr, struct fid_fabric **fabric,
 		return ret;
 
 	*fabric = &util_fabric->fabric_fid;
+	(*fabric)->fid.ops = &udpx_fabric_fi_ops;
 	(*fabric)->ops = &udpx_fabric_ops;
 	return 0;
 }

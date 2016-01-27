@@ -48,6 +48,26 @@ static struct fi_ops_domain udpx_domain_ops = {
 	.srx_ctx = fi_no_srx_context,
 };
 
+static int udpx_domain_close(fid_t fid)
+{
+	int ret;
+	struct util_domain *domain;
+	domain = container_of(fid, struct util_domain, domain_fid.fid);
+	ret = util_domain_close(domain);
+	if (ret)
+		return ret;
+	free(domain);
+	return 0;
+}
+
+static struct fi_ops udpx_domain_fi_ops = {
+	.size = sizeof(struct fi_ops),
+	.close = udpx_domain_close,
+	.bind = fi_no_bind,
+	.control = fi_no_control,
+	.ops_open = fi_no_ops_open,
+};
+
 int udpx_domain_open(struct fid_fabric *fabric, struct fi_info *info,
 		struct fid_domain **domain, void *context)
 {
@@ -67,6 +87,7 @@ int udpx_domain_open(struct fid_fabric *fabric, struct fi_info *info,
 		return ret;
 
 	*domain = &util_domain->domain_fid;
+	(*domain)->fid.ops = &udpx_domain_fi_ops;
 	(*domain)->ops = &udpx_domain_ops;
 	return 0;
 }
