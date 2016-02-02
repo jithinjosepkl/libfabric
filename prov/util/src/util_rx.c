@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 Intel Corporation. All rights reserved.
+ * Copyright (c) 2013-2016 Intel Corporation. All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -30,54 +30,48 @@
  * SOFTWARE.
  */
 
-#include <rdma/fi_errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fi_util.h>
 
-#include <prov.h>
-#include "rdmx.h"
-
-struct fi_fabric_attr dg_fabric_attr;
-
-static int rdmx_getinfo(uint32_t version, const char *node, const char *service,
-			uint64_t flags, struct fi_info *hints, struct fi_info **info)
+struct util_rx_list *util_rx_list_init(size_t max_len)
 {
-	int ret;
-	struct fi_info *dg_info;
+	struct util_rx_list *rx_list;
 
-	if (!hints || !hints->ep_attr || (hints && hints->ep_attr->type != FI_EP_RDM))
-		return -FI_ENODATA;
+	rx_list = calloc(1, sizeof(*rx_list));
+	if (!rx_list)
+		return NULL;
 
-	ret = fi_getinfo(version, node, service, flags, &dg_hints, &dg_info);
-	if (ret)
-		return ret;
+	rx_list->max_len = max_len;
+	rx_list->curr_len = 0;
+	dlist_init(&rx_list->rx_list);
+	return rx_list;
+}
 
-	dg_fabric_attr = *dg_info->fabric_attr;
+int util_rx_list_post(struct util_rx_list *rx_list, struct util_rx_entry *rx_entry)
+{
+	if (rx_list->curr_len == rx_list->max_len)
+		return -FI_EAGAIN;
 
-	dg_info->caps = rdmx_info.caps;
-	dg_info->tx_attr = rdmx_info.tx_attr;
-	dg_info->rx_attr = rdmx_info.rx_attr;
-	dg_info->ep_attr = rdmx_info.ep_attr;
-	dg_info->fabric_attr = rdmx_info.fabric_attr;
-	dg_info->domain_attr = rdmx_info.domain_attr;
-
-	*info = dg_info;
+	dlist_insert_tail(&rx_entry->entry, &rx_list->rx_list);
 	return 0;
 }
 
-static void rdmx_fini(void)
+struct util_rx_entry *util_rx_list_dequeue(struct util_rx_list *rx_list,
+					   uint64_t addr, uint64_t tag)
 {
-	/* yawn */
-}
+	struct dlist_entry *entry;
+	struct util_rx_entry *rx_entry;
 
-struct fi_provider rdmx_prov = {
-	.name = "rdmx",
-	.version = FI_VERSION(RDMX_MAJOR_VERSION, RDMX_MINOR_VERSION),
-	.fi_version = FI_VERSION(1, 1),
-	.getinfo = rdmx_getinfo,
-	.fabric = rdmx_fabric,
-	.cleanup = rdmx_fini
-};
-
-RDMX_INI
-{
-	return &rdmx_prov;
+	for (entry = rx_list->rx_list.next; entry != &rx_list->rx_list; entry = entry->next) {
+		rx_entry = container_of(entry, struct util_rx_entry, entry);
+		
+		if (((rx_entry->tag & ~rx_entry->ignore) == (tag & ~rx_entry->ignore)) &&
+		    (rx_entry->addr == FI_ADDR_UNSPEC || addr == FI_ADDR_UNSPEC ||
+		     rx_entry->addr == addr)) {
+			dlist_remove(&rx_entry->entry);
+			return rx_entry;
+		}
+	}
+	return NULL;
 }

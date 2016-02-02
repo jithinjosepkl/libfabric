@@ -294,6 +294,60 @@ struct util_event {
 int fi_eq_create(struct fid_fabric *fabric, struct fi_eq_attr *attr,
 		 struct fid_eq **eq_fid, void *context);
 
+/* 
+ * Buffer Pool
+ */
+
+struct util_buf_pool_t {
+	size_t size;
+	size_t num;
+	void *memory_region;
+	struct util_buf_pool_t *next;
+	struct util_buf_t *head;
+	pthread_mutex_t lock;
+};
+
+struct util_buf_t {
+	struct util_buf_t *next;
+	struct util_buf_pool_t *pool;
+	char data[];
+};
+
+struct util_buf_pool_t *util_buf_pool_create(size_t num, size_t size);
+void util_buf_pool_destroy(struct util_buf_pool_t *pool);
+
+void *util_buf_get_safe(struct util_buf_pool_t *pool);
+void *util_buf_get(struct util_buf_pool_t *pool);
+
+void util_buf_release_safe(void *buf);
+void util_buf_release(void *buf);
+
+/* 
+ * Recv buffer tag matching 
+ */
+
+struct util_rx_entry {
+	void *desc;
+	size_t iov_count;
+	fi_addr_t addr;
+	uint64_t tag;
+	uint64_t ignore;
+	void *context;
+	uint64_t data;
+	struct dlist_entry entry;
+	struct iovec msg_iov[];
+};
+
+struct util_rx_list {
+	struct dlist_entry rx_list;
+	size_t max_len;
+	size_t curr_len;
+};
+
+struct util_rx_list *util_rx_list_init(size_t max_len);
+int util_rx_list_post(struct util_rx_list *rx_list, struct util_rx_entry *rx_entry);
+struct util_rx_entry *util_rx_list_dequeue(struct util_rx_list *rx_list,
+					   uint64_t addr, uint64_t tag);
 
 /*
  * Attributes and capabilities

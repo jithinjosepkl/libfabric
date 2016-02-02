@@ -102,3 +102,6 @@ int rdmx_domain_open(struct fid_fabric *fabric, struct fi_info *info,
 	(*domain)->ops = &rdmx_domain_ops;
 	return 0;
 }
+
+
+

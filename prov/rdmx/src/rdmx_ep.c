@@ -260,6 +260,10 @@ ssize_t rdmx_send(struct fid_ep *ep_fid, const void *buf, size_t len, void *desc
 		goto out;
 	}
 
+	/* find the TX queue */
+
+
+
 	ret = sendto(ep->sock, buf, len, 0, ip_av_get_addr(ep->av, dest_addr),
 		     ep->av->addrlen);
 	if (ret == len) {
@@ -501,6 +505,8 @@ int rdmx_endpoint(struct fid_domain *domain, struct fi_info *info,
 		  struct fid_ep **ep, void *context)
 {
 	struct rdmx_ep *ep_priv;
+	struct util_domain *util_domain;
+	struct rdmx_domain *rdmx_domain;
 	int ret;
 
 	if (!info || !info->ep_attr || !info->rx_attr || !info->tx_attr)
@@ -520,6 +526,9 @@ int rdmx_endpoint(struct fid_domain *domain, struct fi_info *info,
 		return ret;
 	}
 
+
+	/* todo: map fi_addr_t => remote EP info */
+
 	ep_priv->ep_fid.fid.fclass = FI_CLASS_EP;
 	ep_priv->ep_fid.fid.context = context;
 	ep_priv->ep_fid.fid.ops = &rdmx_ep_fi_ops;
@@ -527,8 +536,20 @@ int rdmx_endpoint(struct fid_domain *domain, struct fi_info *info,
 	ep_priv->ep_fid.cm = &rdmx_cm_ops;
 	ep_priv->ep_fid.msg = &rdmx_msg_ops;
 
-	ep_priv->domain = container_of(domain, struct util_domain, domain_fid);
+/*
+	util_domain = container_of(domain, struct util_domain, domain_fid);
+	rdmx_domain = container_of(util_domain, struct rdmx_domain, util_domain);
+
+	ret = fi_endpoint(util_domain->fid, dg_info, &ep_priv->dg_ep, context);
+	if (ret) {
+		free(ep_priv);
+		return ret;
+	}
+
+
+	ep_priv->domain = rdmx_domain;
 	atomic_inc(&ep_priv->domain->ref);
+*/
 
 	*ep = &ep_priv->ep_fid;
 	return 0;

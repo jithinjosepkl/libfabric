@@ -95,17 +95,74 @@ struct rdmx_ep_entry {
 
 DECLARE_CIRQUE(struct rdmx_ep_entry, rdmx_rx_cirq);
 
+
+
+
+
+
+struct rdmx_pkt_hdr {
+	uint64_t seq_no;
+	uint64_t ack;
+	uint64_t tx_id;
+	uint64_t rx_id;
+	uint8_t op_type;
+	uint8_t last_pkt;
+};
+
+struct rdmx_tx_pkt {
+	uint64_t seq_no;
+	uint64_t timestamp;
+	struct fi_context context;
+
+	struct iovec iov[2];
+	struct slist_entry entry;
+};
+
+struct rdmx_peer_info {
+	struct slist_head *tx_list;
+	uint16_t tx_list_sz;
+
+	struct slist_head *tx_pkt_list;
+
+	uint64_t next_seqno;
+	uint64_t exp_seqno;
+};
+
+struct rdmx_tx_entry {
+	void			*context;
+	struct slist_entry      slist_entry;
+	struct iovec		iov[RDMX_IOV_LIMIT];
+	uint64_t                flags;
+	uint64_t                tx_offset;
+	uint8_t			iov_count;
+	uint8_t			tx_done;
+
+
+
+
+	//uint8_t			flags;
+	uint8_t			resv[sizeof(size_t) - 2];
+};
+
+
 struct rdmx_ep {
 	struct fid_ep		ep_fid;
 	struct util_domain	*domain;
 	struct util_av		*av;
 	struct rdmx_cq		*rx_cq;
 	struct rdmx_cq		*tx_cq;
+
+	struct fid_ep *dg_ep;
+
 	struct rdmx_rx_cirq	rxq; /* protected by rx_cq lock */
+	//struct rdmx_tx_cirq	txq; /* protected by rx_cq lock */
+
 	uint64_t		caps;
 	uint64_t		flags;
 	size_t			min_multi_recv;
 	int			sock;
+
+	//RbtHandle addr_map; /* used only if av type is FI_AV_MAP */
 };
 
 DECLARE_CIRQUE(struct fi_cq_data_entry, rdmx_comp_cirq);
