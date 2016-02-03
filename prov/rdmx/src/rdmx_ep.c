@@ -35,6 +35,13 @@
 
 #include "rdmx.h"
 
+static inline fid_t rdmx_ep_get_dgram_fid(fid_t fid)
+{
+	struct rdmx_ep *rdmx_ep;
+	rdmx_ep = container_of(fid, struct rdmx_ep, ep_fid.fid);
+	return rdmx_ep->dg_ep->fid;
+}
+
 
 int rdmx_setname(fid_t fid, void *addr, size_t addrlen)
 {
