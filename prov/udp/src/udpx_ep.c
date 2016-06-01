@@ -43,6 +43,7 @@ int udpx_setname(fid_t fid, void *addr, size_t addrlen)
 
 	ep = container_of(fid, struct udpx_ep, util_ep.ep_fid.fid);
 	ret = bind(ep->sock, addr, addrlen);
+	ep->bound = 1;
 	return ret ? -errno : 0;
 }
 
@@ -281,7 +282,7 @@ ssize_t udpx_sendmsg(struct fid_ep *ep_fid, const struct fi_msg *msg,
 {
 	struct udpx_ep *ep;
 	struct msghdr hdr;
-	ssize_t ret;
+	int ret;
 
 	ep = container_of(ep_fid, struct udpx_ep, util_ep.ep_fid.fid);
 	hdr.msg_name = ip_av_get_addr(ep->util_ep.av, msg->addr);
@@ -305,6 +306,8 @@ ssize_t udpx_sendmsg(struct fid_ep *ep_fid, const struct fi_msg *msg,
 	} else {
 		ret = -errno;
 	}
+
+	FI_WARN(&udpx_prov, FI_LOG_EP_CTRL, "Sent %d bytes\n", ret);
 out:
 	fastlock_release(&ep->util_ep.tx_cq->cq_lock);
 	return ret;
@@ -472,6 +475,30 @@ static int udpx_ep_bind(struct fid *ep_fid, struct fid *bfid, uint64_t flags)
 	return ret;
 }
 
+static void udpx_bind_src_addr(struct udpx_ep *ep)
+{
+	int ret;
+	struct addrinfo ai, *rai = NULL;
+	char hostname[HOST_NAME_MAX];
+
+	memset(&ai, 0, sizeof(ai));
+	ai.ai_family = AF_INET;
+	ai.ai_socktype = SOCK_DGRAM;
+
+	ofi_getnodename(hostname, sizeof(hostname));
+	ret = getaddrinfo(hostname, NULL, &ai, &rai);
+	if (ret) {
+		FI_WARN(&udpx_prov, FI_LOG_EP_CTRL,
+			"getaddrinfo failed\n");
+		return;
+	}
+
+	ret = udpx_setname(&ep->util_ep.ep_fid.fid, rai->ai_addr, rai->ai_addrlen);
+	if (ret) {
+		FI_WARN(&udpx_prov, FI_LOG_EP_CTRL, "failed to set addr\n");
+	}
+}
+
 static int udpx_ep_ctrl(struct fid *fid, int command, void *arg)
 {
 	struct udpx_ep *ep;
@@ -483,6 +510,9 @@ static int udpx_ep_ctrl(struct fid *fid, int command, void *arg)
 			return -FI_ENOCQ;
 		if (!ep->util_ep.av)
 			return -FI_EOPBADSTATE; /* TODO: Add FI_ENOAV */
+
+		if (!ep->bound)
+			udpx_bind_src_addr(ep);
 		break;
 	default:
 		return -FI_ENOSYS;
@@ -523,6 +553,7 @@ static int udpx_ep_init(struct udpx_ep *ep, struct fi_info *info)
 			ret = -errno;
 			goto err1;
 		}
+		ep->bound = 1;
 	}
 
 	ret = fi_fd_nonblock(ep->sock);
