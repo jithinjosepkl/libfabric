@@ -111,7 +111,7 @@ static void util_cq_read_data(void **dst, void *src)
 static void util_cq_read_tagged(void **dst, void *src)
 {
 	*(struct fi_cq_tagged_entry *) *dst = *(struct fi_cq_tagged_entry *) src;
-	*dst += sizeof(struct fi_cq_tagged_entry);
+	*(char **)dst += sizeof(struct fi_cq_tagged_entry);
 }
 
 static ssize_t util_cq_read(struct fid_cq *cq_fid, void *buf, size_t count)
